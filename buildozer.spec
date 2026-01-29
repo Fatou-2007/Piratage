@@ -1,30 +1,80 @@
-[app]
+name: Build APK
 
-title = piratage
-package.name = piratage
-package.domain = org.test
+on:
+  push:
+    branches: [ "main" ]
 
-source.dir = .
-source.include_exts = py,kv,png,jpg,ttf,txt,ogg,wav,mp3
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-version = 1.0.0
+    steps:
 
-requirements = python3,kivy
+    # ----------------------------------------------------
+    # 1) Récupérer le code du dépôt
+    # ----------------------------------------------------
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-orientation = portrait
-fullscreen = 0
+    # ----------------------------------------------------
+    # 2) Installer Python
+    # ----------------------------------------------------
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
 
+    # ----------------------------------------------------
+    # 3) Installer les dépendances Linux + Buildozer
+    # ----------------------------------------------------
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          python3-pip python3-setuptools git python3-dev \
+          build-essential libffi-dev libssl-dev \
+          liblzma-dev zlib1g-dev libncurses5-dev \
+          libstdc++6 unzip wget
 
-[buildozer]
+        pip install --upgrade pip
+        pip install buildozer cython
 
-log_level = 2
-warn_on_root = 1
+    # ----------------------------------------------------
+    # 4) Installer le SDK Android + outils
+    # ----------------------------------------------------
+    - name: Install Android SDK
+      run: |
+        mkdir -p $HOME/android-sdk/cmdline-tools
+        cd $HOME/android-sdk/cmdline-tools
 
-android.sdk = 33
-android.ndk = 23b
-android.ndk_api = 21
-android.api = 33
+        wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+        unzip tools.zip
+        rm tools.zip
+        mv cmdline-tools latest
 
-android.archs = arm64-v8a, armeabi-v7a
+        export ANDROID_HOME=$HOME/android-sdk
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
 
-android.build_tools_version = 34.0.0
+        yes | sdkmanager --licenses || true
+        sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+    # ----------------------------------------------------
+    # 5) Construire l’APK
+    # ----------------------------------------------------
+    - name: Build APK
+      run: |
+        export ANDROID_HOME=$HOME/android-sdk
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0:$ANDROID_HOME/cmdline-tools/latest/bin
+
+        buildozer android debug
+
+    # ----------------------------------------------------
+    # 6) Upload APK généré
+    # ----------------------------------------------------
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: APK-final
+        path: bin/*.apk
