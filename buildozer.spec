@@ -7,7 +7,7 @@ package.domain = org.test
 source.dir = .
 source.include_exts = py,kv,png,jpg,ttf,txt,ogg,wav,mp3
 
-version = 33.0.2
+version = 1.0.0
 
 requirements = python3,kivy
 
@@ -27,4 +27,4 @@ android.api = 33
 
 android.archs = arm64-v8a, armeabi-v7a
 
-android.build_tools_version = 33.0.2
+android.build_tools_version = 34.0.0
