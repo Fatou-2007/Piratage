@@ -7,7 +7,7 @@ package.domain = org.test
 source.dir = .
 source.include_exts = py,kv,png,jpg,ttf,txt,ogg,wav,mp3
 
-version = 0.1
+version = 33.0.2
 
 requirements = python3,kivy
 
