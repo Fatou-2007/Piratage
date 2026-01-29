@@ -10,22 +10,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+    - name: Checkout
+      uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
-        pip install buildozer
-        pip install cython
         sudo apt update
-        sudo apt install -y libpython3-dev
+        sudo apt install -y python3 python3-pip zip unzip libpython3-dev
+        pip install buildozer cython
+
+    - name: Install Android SDK
+      run: |
+        sudo mkdir -p /usr/lib/android-sdk/cmdline-tools
+        cd /usr/lib/android-sdk/cmdline-tools
+        sudo wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        sudo unzip commandlinetools-linux-11076708_latest.zip
+        sudo mv cmdline-tools latest
+        export ANDROID_SDK_ROOT=/usr/lib/android-sdk
+        echo "export ANDROID_SDK_ROOT=/usr/lib/android-sdk" >> $GITHUB_ENV
+        echo "export PATH=$PATH:/usr/lib/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_ENV
+        echo "export PATH=$PATH:/usr/lib/android-sdk/platform-tools" >> $GITHUB_ENV
+        yes | sudo /usr/lib/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+        sudo /usr/lib/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
 
     - name: Build APK
-      run: buildozer android debug
+      run: |
+        export ANDROIDSDK=/usr/lib/android-sdk
+        export ANDROIDNDK=/usr/lib/android-sdk/ndk-bundle
+        buildozer android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
