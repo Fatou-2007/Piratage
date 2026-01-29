@@ -1,0 +1,74 @@
+import requests
+import re
+import json
+from bs4 import BeautifulSoup
+
+def extract_api_info(url, username, password):
+    # Connect to the login page
+    session = requests.Session()
+    login_page = session.get(url)
+
+    # Parse the login page to find the login form
+    soup = BeautifulSoup(login_page.content, 'html.parser')
+    login_form = soup.find('form', {'id': 'login-form'})
+
+    if not login_form:
+        print("Login form not found.")
+        return None
+
+    # Extract action URL and method from the login form
+    action_url = login_form['action']
+    method = login_form['method'].upper()
+
+    # Extract input fields from the login form
+    inputs = login_form.find_all('input')
+    login_data = {}
+    for input_tag in inputs:
+        input_name = input_tag.get('name')
+        input_type = input_tag.get('type')
+        if input_name and input_type:
+            if input_type == 'text':
+                login_data[input_name] = username
+            elif input_type == 'password':
+                login_data[input_name] = password
+
+    # Submit the login form
+    if method == 'POST':
+        response = session.post(action_url, data=login_data)
+    else:
+        print("Unsupported method:", method)
+        return None
+
+    # Check if login was successful
+    if 'login successful' not in response.text.lower():
+        print("Login failed.")
+        return None
+
+    # Extract API information from the response
+    api_info = {}
+    api_patterns = [
+        r'api\.url\s*=\s*["\'](.*?)["\']',
+        r'api\.key\s*=\s*["\'](.*?)["\']',
+        r'token\s*=\s*["\'](.*?)["\']'
+    ]
+
+    for pattern in api_patterns:
+        match = re.search(pattern, response.text)
+        if match:
+            api_info[pattern.split('.')[0]] = match.group(1)
+
+    return api_info
+
+if __name__ == "__main__":
+    # Example usage
+    url = 'https://buzzcast.example.com/login'  # Replace with the actual login URL
+    username = 'your_username'  # Replace with your actual username
+    password = 'your_password'  # Replace with your actual password
+
+    api_info = extract_api_info(url, username, password)
+    if api_info:
+        print("Extracted API Information:")
+        print(json.dumps(api_info, indent=4))
+    else:
+        print("Failed to extract API information.")
+      
