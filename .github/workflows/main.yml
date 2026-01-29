@@ -1,50 +1,17 @@
-name: Build APK
+- name: Install Android SDK
+  run: |
+    sudo mkdir -p /usr/lib/android-sdk/cmdline-tools
+    cd /usr/lib/android-sdk/cmdline-tools
+    sudo wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+    sudo unzip commandlinetools-linux-11076708_latest.zip
+    sudo mv cmdline-tools latest
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+    echo "ANDROID_SDK_ROOT=/usr/lib/android-sdk" >> $GITHUB_ENV
+    echo "PATH=/usr/lib/android-sdk/cmdline-tools/latest/bin:/usr/lib/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+    yes | sudo /usr/lib/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y python3 python3-pip zip unzip libpython3-dev
-        pip install buildozer cython
-
-    - name: Install Android SDK
-      run: |
-        sudo mkdir -p /usr/lib/android-sdk/cmdline-tools
-        cd /usr/lib/android-sdk/cmdline-tools
-        sudo wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-        sudo unzip commandlinetools-linux-11076708_latest.zip
-        sudo mv cmdline-tools latest
-
-        echo "ANDROID_SDK_ROOT=/usr/lib/android-sdk" >> $GITHUB_ENV
-        echo "PATH=/usr/lib/android-sdk/cmdline-tools/latest/bin:/usr/lib/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
-
-        yes | sudo /usr/lib/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-
-        # Install versions that include AIDL properly
-        sudo /usr/lib/android-sdk/cmdline-tools/latest/bin/sdkmanager \
-          "platform-tools" \
-          "platforms;android-33" \
-          "build-tools;36.0.0"
-
-    - name: Build APK
-      run: |
-        export ANDROIDSDK=/usr/lib/android-sdk
-        buildozer android debug
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: apk
-        path: bin/*.apk
+    sudo /usr/lib/android-sdk/cmdline-tools/latest/bin/sdkmanager \
+      "platform-tools" \
+      "platforms;android-33" \
+      "build-tools;33.0.2"
